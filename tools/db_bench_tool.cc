@@ -4316,6 +4316,7 @@ void VerifyDBFromDB(std::string& truth_db_name) {
 
         thread->shared->queue_mu[queue_index].Lock();
         if(thread->shared->op_queues[queue_index].size() < FLAGS_per_queue_length ) {
+          // 队列存储实际的入队时间
           thread->shared->op_queues[queue_index].push(FLAGS_env->NowMicros());
           push_ok = true;
         }
@@ -4324,6 +4325,7 @@ void VerifyDBFromDB(std::string& truth_db_name) {
           done++;
           thread->shared->request_num++;
           push_ok = false;
+          // 令牌桶限制请求速率
           thread->shared->request_rate_limiter->Request(1, Env::IO_HIGH, nullptr /* stats */, RateLimiter::OpType::kWrite);
         }
         queue_index = (queue_index + 1) % REQUEST_QUEUE;
@@ -4374,6 +4376,7 @@ void VerifyDBFromDB(std::string& truth_db_name) {
 
         thread->shared->queue_mu[thread->tid - 2 ].Lock();
         if(!thread->shared->op_queues[thread->tid - 2 ].empty()){
+          // 出队
           uint64_t add_to_queue_micro = thread->shared->op_queues[thread->tid - 2 ].front();
           thread->shared->op_queues[thread->tid - 2 ].pop();
           thread->shared->queue_mu[thread->tid - 2 ].Unlock();
@@ -4393,6 +4396,7 @@ void VerifyDBFromDB(std::string& truth_db_name) {
           } */
 
 
+          // 执行 YCSB-A
           long k;
           if (FLAGS_YCSB_uniform_distribution){
             //Generate number from uniform distribution            
@@ -4433,7 +4437,9 @@ void VerifyDBFromDB(std::string& truth_db_name) {
           done++;
           uint64_t done_micro = FLAGS_env->NowMicros();
           thread->shared->latency_mu.Lock();
+          // 计算队列中驻留时间
           thread->shared->ops_latency[thread->shared->ops_done].stay_queue_time = pop_from_queue_micro - add_to_queue_micro;
+          // 计算请求的执行时间
           thread->shared->ops_latency[thread->shared->ops_done].execute_time = done_micro - pop_from_queue_micro;
           thread->shared->ops_done++;
           thread->shared->latency_mu.Unlock();

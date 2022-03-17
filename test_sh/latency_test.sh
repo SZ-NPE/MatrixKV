@@ -27,18 +27,22 @@ use_nvm_module="true"
 #stats_interval_seconds="10"
 histogram="true"
 
+# 3 个线程测试
 threads="3"
 
+# 
 request_rate_limit="20000"
 #benchmark_write_rate_limit="`expr 20000 \* \( $value_size + 16 \)`"  #20K iops, key: 16 bytes
 
 #report_ops_latency="true"
 
+# 每个队列长度 16
 per_queue_length="16"
 
 
 const_params=""
 
+# 参数填充
 function FILL_PATAMS() {
     if [ -n "$db" ];then
         const_params=$const_params"--db=$db "
@@ -129,6 +133,8 @@ function FILL_PATAMS() {
     fi
 
 }
+
+# 清理页缓存
 CLEAN_CACHE() {
     if [ -n "$db" ];then
         rm -f $db/*
@@ -138,6 +144,8 @@ CLEAN_CACHE() {
     echo 3 > /proc/sys/vm/drop_caches
     sleep 2
 }
+
+# 处理输出文件
 COPY_OUT_FILE(){
     mkdir $bench_file_dir/result > /dev/null 2>&1
     res_dir=$bench_file_dir/result/value-$value_size
@@ -146,7 +154,9 @@ COPY_OUT_FILE(){
     \cp -f $bench_file_dir/OP_DATA $res_dir/
     \cp -f $bench_file_dir/OP_TIME.csv $res_dir/
     \cp -f $bench_file_dir/out.out $res_dir/
+    # 延迟
     \cp -f $bench_file_dir/Latency.csv $res_dir/
+    # 每秒延迟
     \cp -f $bench_file_dir/PerSecondLatency.csv $res_dir/
     \cp -f $db/OPTIONS-* $res_dir/
 
@@ -170,11 +180,13 @@ fi
 FILL_PATAMS 
 CLEAN_CACHE
 
+# 设置 CMD，设置 numa 绑定 CPU 和内存
 cmd="$bench_file_path $const_params "
 if [ "$1" == "numa" ];then
 cmd="numactl -N 1 -m 1 $bench_file_path $const_params"
 fi
 
+# 输出命令并执行
 echo $cmd
 eval $cmd
 
